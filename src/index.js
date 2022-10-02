@@ -11,9 +11,7 @@ const users = [];
 
 function checksExistsUserAccount(request, response, next) {
   const { username } = request.headers;
-
   const user = users.find(currentUser => currentUser.username === username);
-
   if (!user) {
     return response.status(404).json({
       error: 'User not found',
@@ -34,7 +32,7 @@ function checksCreateTodosUserAvailability(request, response, next) {
     return next();
   }
 
-  if (!user.Pro && todosAmount < 10 ) {
+  if (!user.Pro && todosAmount < 10) {
     return next();
   }
 
@@ -44,17 +42,29 @@ function checksCreateTodosUserAvailability(request, response, next) {
 }
 
 function checksTodoExists(request, response, next) {
-  const { user } = request;
   const { id } = request.params;
+  if (!validate(id)) {
+    return response.status(400).json({
+      error: 'Id is invalid',
+    });
+  }
+
+  const { username } = request.headers;
+  const user = users.find(currentUser => currentUser.username === username);
+  if (!user) {
+    return response.status(404).json({
+      error: 'User not found',
+    });
+  }
 
   const todo = user.todos.find(currentTodo => currentTodo.id === id);
-
   if (!todo) {
     return response.status(404).json({
       error: 'Todo not found',
     });
   }
 
+  request.user = user;
   request.todo = todo;
 
   return next();
@@ -149,7 +159,7 @@ app.put('/todos/:id', checksTodoExists, (request, response) => {
   return response.json(todo);
 });
 
-app.patch('/todos/:id/done', checksExistsUserAccount, checksTodoExists, (request, response) => {
+app.patch('/todos/:id/done', checksTodoExists, (request, response) => {
   const { todo } = request;
 
   todo.done = true;
@@ -157,7 +167,7 @@ app.patch('/todos/:id/done', checksExistsUserAccount, checksTodoExists, (request
   return response.json(todo);
 });
 
-app.delete('/todos/:id', checksExistsUserAccount, checksTodoExists, (request, response) => {
+app.delete('/todos/:id', checksTodoExists, (request, response) => {
   const { user, todo } = request;
 
   const todoIndex = user.todos.indexOf(todo);
